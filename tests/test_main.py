@@ -12,10 +12,16 @@ def test_read_root() -> None:
     assert response.json() == {"message": "QueueForge API"}
 
 
-def test_create_job() -> None:
+def test_create_job_with_csv() -> None:
     response = client.post(
         "/api/v1/jobs",
-        json={"filename": "inventory.csv"},
+        files={
+            "file": (
+                "inventory.csv",
+                b"product,quantity,price\nMiller Lite,48,3.50\n",
+                "text/csv",
+            )
+        },
     )
 
     assert response.status_code == 200
@@ -23,4 +29,42 @@ def test_create_job() -> None:
         "id": 1,
         "filename": "inventory.csv",
         "status": "pending",
+        "columns": ["product", "quantity", "price"],
     }
+
+
+def test_create_job_rejects_non_csv_file() -> None:
+    response = client.post(
+        "/api/v1/jobs",
+        files={
+            "file": (
+                "notes.txt",
+                b"hello world",
+                "text/plain",
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "Only CSV files are supported."
+    }
+
+
+def test_create_job_rejects_empty_csv() -> None:
+    response = client.post(
+        "/api/v1/jobs",
+        files={
+            "file": (
+                "empty.csv",
+                b"",
+                "text/csv",
+            )
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "detail": "CSV file must contain a header row."
+    }
+    
