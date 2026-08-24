@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from app.processing.csv_processor import get_csv_headers
+from app.processing.csv_processor import get_csv_headers, process_csv
 
 app = FastAPI(
     title="QueueForge API",
@@ -16,6 +16,12 @@ class JobResponse(BaseModel):
     filename: str
     status: str
     columns: list[str]
+    total_rows: int
+    valid_rows: int
+    invalid_rows: int
+    duplicate_products: int
+    missing_values: int
+    invalid_numeric_values: int
 
 
 @app.get("/")
@@ -42,6 +48,14 @@ async def create_job(
     contents = await file.read()
     columns = get_csv_headers(contents)
 
+    try:
+        report = process_csv(contents)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
     if not columns:
         raise HTTPException(
             status_code=400,
@@ -51,6 +65,12 @@ async def create_job(
     return JobResponse(
         id=1,
         filename=file.filename,
-        status="pending",
+        status="completed",
         columns=columns,
+        total_rows=report.total_rows,
+        valid_rows=report.valid_rows,
+        invalid_rows=report.invalid_rows,
+        duplicate_products=report.duplicate_products,
+        missing_values=report.missing_values,
+        invalid_numeric_values=report.invalid_numeric_values,
     )

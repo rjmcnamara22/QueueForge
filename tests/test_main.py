@@ -28,8 +28,14 @@ def test_create_job_with_csv() -> None:
     assert response.json() == {
         "id": 1,
         "filename": "inventory.csv",
-        "status": "pending",
+        "status": "completed",
         "columns": ["product", "quantity", "price"],
+        "total_rows": 1,
+        "valid_rows": 1,
+        "invalid_rows": 0,
+        "duplicate_products": 0,
+        "missing_values": 0,
+        "invalid_numeric_values": 0,
     }
 
 
