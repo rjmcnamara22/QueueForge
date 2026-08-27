@@ -1,18 +1,14 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
 
-client = TestClient(app)
-
-
-def test_read_root() -> None:
+def test_read_root(client: TestClient) -> None:
     response = client.get("/")
 
     assert response.status_code == 200
     assert response.json() == {"message": "QueueForge API"}
 
 
-def test_create_job_with_csv() -> None:
+def test_create_job_with_csv(client: TestClient) -> None:
     response = client.post(
         "/api/v1/jobs",
         files={
@@ -42,7 +38,7 @@ def test_create_job_with_csv() -> None:
     assert data["created_at"] is not None
 
 
-def test_create_job_rejects_non_csv_file() -> None:
+def test_create_job_rejects_non_csv_file(client: TestClient) -> None:
     response = client.post(
         "/api/v1/jobs",
         files={
@@ -60,7 +56,7 @@ def test_create_job_rejects_non_csv_file() -> None:
     }
 
 
-def test_create_job_rejects_empty_csv() -> None:
+def test_create_job_rejects_empty_csv(client: TestClient) -> None:
     response = client.post(
         "/api/v1/jobs",
         files={
