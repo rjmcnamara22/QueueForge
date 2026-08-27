@@ -11,6 +11,7 @@ dependencies = [
     "psycopg[binary]",
     "alembic",
     "pydantic-settings",
+    "redis",
 ]
 
 [project.optional-dependencies]
@@ -30,3 +31,7 @@ line-length = 88
 [tool.mypy]
 python_version = "3.11"
 strict = true
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["alembic*", "tests*"]
