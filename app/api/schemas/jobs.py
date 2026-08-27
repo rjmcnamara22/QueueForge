@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -12,3 +14,4 @@ class JobResponse(BaseModel):
     duplicate_products: int
     missing_values: int
     invalid_numeric_values: int
+    created_at: datetime

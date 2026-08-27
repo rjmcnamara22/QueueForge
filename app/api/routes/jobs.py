@@ -1,8 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.orm import Session
 
 from app.api.schemas.jobs import JobResponse
+from app.database import get_db
+from app.models.job import Job
 from app.processing.csv_processor import get_csv_headers, process_csv
 
 router = APIRouter(
@@ -14,6 +17,7 @@ router = APIRouter(
 @router.post("", response_model=JobResponse)
 async def create_job(
     file: Annotated[UploadFile, File()],
+    db: Annotated[Session, Depends(get_db)],
 ) -> JobResponse:
     if not file.filename:
         raise HTTPException(
@@ -44,15 +48,31 @@ async def create_job(
             detail=str(error),
         ) from error
 
-    return JobResponse(
-        id=1,
+    job = Job(
         filename=file.filename,
         status="completed",
-        columns=columns,
         total_rows=report.total_rows,
         valid_rows=report.valid_rows,
         invalid_rows=report.invalid_rows,
         duplicate_products=report.duplicate_products,
         missing_values=report.missing_values,
         invalid_numeric_values=report.invalid_numeric_values,
+    )
+
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    return JobResponse(
+        id=job.id,
+        filename=job.filename,
+        status=job.status,
+        columns=columns,
+        total_rows=job.total_rows,
+        valid_rows=job.valid_rows,
+        invalid_rows=job.invalid_rows,
+        duplicate_products=job.duplicate_products,
+        missing_values=job.missing_values,
+        invalid_numeric_values=job.invalid_numeric_values,
+        created_at=job.created_at,
     )
