@@ -72,4 +72,46 @@ def test_create_job_rejects_empty_csv(client: TestClient) -> None:
     assert response.json() == {
         "detail": "CSV file must contain a header row."
     }
+
+def test_get_job(client: TestClient) -> None:
+    create_response = client.post(
+        "/api/v1/jobs",
+        files={
+            "file": (
+                "inventory.csv",
+                b"product,quantity,price\nMiller Lite,48,3.50\n",
+                "text/csv",
+            )
+        },
+    )
+
+    assert create_response.status_code == 200
+
+    created_job = create_response.json()
+    job_id = created_job["id"]
+
+    response = client.get(f"/api/v1/jobs/{job_id}")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["id"] == job_id
+    assert data["filename"] == "inventory.csv"
+    assert data["status"] == "completed"
+    assert data["total_rows"] == 1
+    assert data["valid_rows"] == 1
+    assert data["invalid_rows"] == 0
+    assert data["duplicate_products"] == 0
+    assert data["missing_values"] == 0
+    assert data["invalid_numeric_values"] == 0
+    assert data["created_at"] is not None
+
+def test_get_job_returns_404_for_missing_job(client: TestClient) -> None:
+    response = client.get("/api/v1/jobs/999999")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "detail": "Job not found."
+    }
     

@@ -14,9 +14,27 @@ class ProcessingReport:
     missing_values: int
     invalid_numeric_values: int
 
+def decode_csv(contents: bytes) -> str:
+    encodings = (
+        "utf-8",
+        "utf-8-sig",
+        "utf-16",
+        "cp1252",
+    )
+
+    for encoding in encodings:
+        try:
+            return contents.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+
+    raise ValueError(
+        "CSV file must use a supported text encoding."
+    )
+
 
 def get_csv_headers(contents: bytes) -> list[str]:
-    decoded = contents.decode("utf-8")
+    decoded = decode_csv(contents)
     reader = csv.reader(StringIO(decoded))
 
     try:
@@ -26,7 +44,7 @@ def get_csv_headers(contents: bytes) -> list[str]:
 
 
 def process_csv(contents: bytes) -> ProcessingReport:
-    decoded = contents.decode("utf-8")
+    decoded = decode_csv(contents)
     reader = csv.DictReader(StringIO(decoded))
 
     if reader.fieldnames is None:
