@@ -12,6 +12,7 @@ dependencies = [
     "alembic",
     "pydantic-settings",
     "redis",
+    "celery",
 ]
 
 [project.optional-dependencies]
@@ -35,3 +36,10 @@ strict = true
 [tool.setuptools.packages.find]
 include = ["app*"]
 exclude = ["alembic*", "tests*"]
+
+[[tool.mypy.overrides]]
+module = [
+    "celery",
+    "celery.*",
+]
+ignore_missing_imports = true

@@ -1,3 +1,4 @@
+import base64
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -7,7 +8,8 @@ from sqlalchemy.orm import Session
 from app.api.schemas.jobs import JobDetailResponse, JobListItem, JobResponse
 from app.database import get_db
 from app.models.job import Job
-from app.processing.csv_processor import get_csv_headers, process_csv
+from app.processing.csv_processor import get_csv_headers
+from app.tasks.jobs import process_csv_job
 
 router = APIRouter(
     prefix="/api/v1/jobs",
@@ -48,28 +50,27 @@ async def create_job(
             detail="CSV file must contain a header row.",
         )
 
-    try:
-        report = process_csv(contents)
-    except ValueError as error:
-        raise HTTPException(
-            status_code=400,
-            detail=str(error),
-        ) from error
-
     job = Job(
         filename=file.filename,
-        status="completed",
-        total_rows=report.total_rows,
-        valid_rows=report.valid_rows,
-        invalid_rows=report.invalid_rows,
-        duplicate_products=report.duplicate_products,
-        missing_values=report.missing_values,
-        invalid_numeric_values=report.invalid_numeric_values,
+        status="pending",
+        total_rows=0,
+        valid_rows=0,
+        invalid_rows=0,
+        duplicate_products=0,
+        missing_values=0,
+        invalid_numeric_values=0,
     )
 
     db.add(job)
     db.commit()
     db.refresh(job)
+
+    encoded_contents = base64.b64encode(contents).decode("ascii")
+
+    process_csv_job.delay(
+        job.id,
+        encoded_contents,
+    )
 
     return JobResponse(
         id=job.id,
@@ -84,6 +85,7 @@ async def create_job(
         invalid_numeric_values=job.invalid_numeric_values,
         created_at=job.created_at,
     )
+
 
 @router.get("/{job_id}", response_model=JobDetailResponse)
 def get_job(
@@ -110,6 +112,7 @@ def get_job(
         invalid_numeric_values=job.invalid_numeric_values,
         created_at=job.created_at,
     )
+
 
 @router.get("", response_model=list[JobListItem])
 def list_jobs(

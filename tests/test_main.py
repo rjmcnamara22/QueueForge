@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 
@@ -9,16 +11,17 @@ def test_read_root(client: TestClient) -> None:
 
 
 def test_create_job_with_csv(client: TestClient) -> None:
-    response = client.post(
-        "/api/v1/jobs",
-        files={
-            "file": (
-                "inventory.csv",
-                b"product,quantity,price\nMiller Lite,48,3.50\n",
-                "text/csv",
-            )
-        },
-    )
+    with patch("app.api.routes.jobs.process_csv_job.delay") as mocked_delay:
+        response = client.post(
+            "/api/v1/jobs",
+            files={
+                "file": (
+                    "inventory.csv",
+                    b"product,quantity,price\nMiller Lite,48,3.50\n",
+                    "text/csv",
+                )
+            },
+        )
 
     assert response.status_code == 200
 
@@ -27,15 +30,17 @@ def test_create_job_with_csv(client: TestClient) -> None:
     assert isinstance(data["id"], int)
     assert data["id"] > 0
     assert data["filename"] == "inventory.csv"
-    assert data["status"] == "completed"
+    assert data["status"] == "pending"
     assert data["columns"] == ["product", "quantity", "price"]
-    assert data["total_rows"] == 1
-    assert data["valid_rows"] == 1
+    assert data["total_rows"] == 0
+    assert data["valid_rows"] == 0
     assert data["invalid_rows"] == 0
     assert data["duplicate_products"] == 0
     assert data["missing_values"] == 0
     assert data["invalid_numeric_values"] == 0
     assert data["created_at"] is not None
+
+    mocked_delay.assert_called_once()
 
 
 def test_create_job_rejects_non_csv_file(client: TestClient) -> None:
@@ -74,16 +79,17 @@ def test_create_job_rejects_empty_csv(client: TestClient) -> None:
     }
 
 def test_get_job(client: TestClient) -> None:
-    create_response = client.post(
-        "/api/v1/jobs",
-        files={
-            "file": (
-                "inventory.csv",
-                b"product,quantity,price\nMiller Lite,48,3.50\n",
-                "text/csv",
-            )
-        },
-    )
+    with patch("app.api.routes.jobs.process_csv_job.delay"):
+        create_response = client.post(
+            "/api/v1/jobs",
+            files={
+                "file": (
+                    "inventory.csv",
+                    b"product,quantity,price\nMiller Lite,48,3.50\n",
+                    "text/csv",
+                )
+            },
+        )
 
     assert create_response.status_code == 200
 
@@ -98,9 +104,9 @@ def test_get_job(client: TestClient) -> None:
 
     assert data["id"] == job_id
     assert data["filename"] == "inventory.csv"
-    assert data["status"] == "completed"
-    assert data["total_rows"] == 1
-    assert data["valid_rows"] == 1
+    assert data["status"] == "pending"
+    assert data["total_rows"] == 0
+    assert data["valid_rows"] == 0
     assert data["invalid_rows"] == 0
     assert data["duplicate_products"] == 0
     assert data["missing_values"] == 0
