@@ -1,9 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.schemas.jobs import JobDetailResponse, JobResponse
+from app.api.schemas.jobs import JobDetailResponse, JobListItem, JobResponse
 from app.database import get_db
 from app.models.job import Job
 from app.processing.csv_processor import get_csv_headers, process_csv
@@ -109,3 +110,24 @@ def get_job(
         invalid_numeric_values=job.invalid_numeric_values,
         created_at=job.created_at,
     )
+
+@router.get("", response_model=list[JobListItem])
+def list_jobs(
+    db: Annotated[Session, Depends(get_db)],
+) -> list[JobListItem]:
+    statement = select(Job).order_by(Job.created_at.desc())
+
+    jobs = db.scalars(statement).all()
+
+    return [
+        JobListItem(
+            id=job.id,
+            filename=job.filename,
+            status=job.status,
+            total_rows=job.total_rows,
+            valid_rows=job.valid_rows,
+            invalid_rows=job.invalid_rows,
+            created_at=job.created_at,
+        )
+        for job in jobs
+    ]

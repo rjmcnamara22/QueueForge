@@ -114,4 +114,46 @@ def test_get_job_returns_404_for_missing_job(client: TestClient) -> None:
     assert response.json() == {
         "detail": "Job not found."
     }
+
+def test_list_jobs_returns_created_jobs(client: TestClient) -> None:
+    first_response = client.post(
+        "/api/v1/jobs",
+        files={
+            "file": (
+                "first.csv",
+                b"product,quantity,price\nMiller Lite,48,3.50\n",
+                "text/csv",
+            )
+        },
+    )
+
+    second_response = client.post(
+        "/api/v1/jobs",
+        files={
+            "file": (
+                "second.csv",
+                b"product,quantity,price\nBud Light,24,3.25\n",
+                "text/csv",
+            )
+        },
+    )
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+
+    response = client.get("/api/v1/jobs")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 2
+    assert data[0]["filename"] == "second.csv"
+    assert data[1]["filename"] == "first.csv"
+
+def test_list_jobs_returns_empty_list(client: TestClient) -> None:
+    response = client.get("/api/v1/jobs")
+
+    assert response.status_code == 200
+    assert response.json() == []
     
