@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -169,4 +169,33 @@ def test_health_check(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
+
+def test_readiness_check(client: TestClient) -> None:
+    mock_session = MagicMock()
+
+    with (
+        patch(
+            "app.api.routes.readiness.SessionLocal",
+            return_value=mock_session,
+        ),
+        patch("app.api.routes.readiness.redis_client.ping"),
+    ):
+        response = client.get("/ready")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+
+def test_readiness_check_returns_503_when_dependency_fails(
+    client: TestClient,
+) -> None:
+    with patch(
+        "app.api.routes.readiness.SessionLocal",
+        side_effect=Exception("Database unavailable"),
+    ):
+        response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "Service dependencies are not ready."
+    }
     
