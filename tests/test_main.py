@@ -122,27 +122,28 @@ def test_get_job_returns_404_for_missing_job(client: TestClient) -> None:
     }
 
 def test_list_jobs_returns_created_jobs(client: TestClient) -> None:
-    first_response = client.post(
-        "/api/v1/jobs",
-        files={
-            "file": (
-                "first.csv",
-                b"product,quantity,price\nMiller Lite,48,3.50\n",
-                "text/csv",
-            )
-        },
-    )
+    with patch("app.api.routes.jobs.process_csv_job.delay"):
+        first_response = client.post(
+            "/api/v1/jobs",
+            files={
+                "file": (
+                    "first.csv",
+                    b"product,quantity,price\nMiller Lite,48,3.50\n",
+                    "text/csv",
+                )
+            },
+        )
 
-    second_response = client.post(
-        "/api/v1/jobs",
-        files={
-            "file": (
-                "second.csv",
-                b"product,quantity,price\nBud Light,24,3.25\n",
-                "text/csv",
-            )
-        },
-    )
+        second_response = client.post(
+            "/api/v1/jobs",
+            files={
+                "file": (
+                    "second.csv",
+                    b"product,quantity,price\nBud Light,24,3.25\n",
+                    "text/csv",
+                )
+            },
+        )
 
     assert first_response.status_code == 200
     assert second_response.status_code == 200
