@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: queueforge-migrate
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: queueforge-api:local
+          imagePullPolicy: IfNotPresent
+          command:
+            - alembic
+            - upgrade
+            - head
+          env:
+            - name: DATABASE_URL
+              value: postgresql+psycopg://postgres:queueforge@postgres:5432/queueforge
+            - name: TEST_DATABASE_URL
+              value: postgresql+psycopg://postgres:queueforge@postgres:5432/queueforge_test
+            - name: REDIS_URL
+              value: redis://redis:6379/0
+  backoffLimit: 3
