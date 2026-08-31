@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings",
     "redis",
     "celery",
+    "prometheus-client"
 ]
 
 [project.optional-dependencies]

@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.api.routes.health import router as health_router
 from app.api.routes.jobs import router as jobs_router
+from app.api.routes.metrics import router as metrics_router
 from app.api.routes.readiness import router as readiness_router
 
 app = FastAPI(
@@ -12,6 +13,7 @@ app = FastAPI(
 app.include_router(jobs_router)
 app.include_router(health_router)
 app.include_router(readiness_router)
+app.include_router(metrics_router)
 
 
 @app.get("/")
