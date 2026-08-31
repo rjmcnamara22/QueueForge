@@ -16,9 +16,18 @@ spec:
             - head
           env:
             - name: DATABASE_URL
-              value: postgresql+psycopg://postgres:queueforge@postgres:5432/queueforge
+              valueFrom:
+                secretKeyRef:
+                  name: queueforge-secrets
+                  key: DATABASE_URL
+
             - name: TEST_DATABASE_URL
-              value: postgresql+psycopg://postgres:queueforge@postgres:5432/queueforge_test
+              valueFrom:
+                secretKeyRef:
+                  name: queueforge-secrets
+                  key: TEST_DATABASE_URL
+
             - name: REDIS_URL
               value: redis://redis:6379/0
+
   backoffLimit: 3
