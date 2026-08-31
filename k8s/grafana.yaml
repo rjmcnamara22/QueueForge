@@ -58,10 +58,16 @@ spec:
 
           env:
             - name: GF_SECURITY_ADMIN_USER
-              value: admin
+              valueFrom:
+                secretKeyRef:
+                  name: queueforge-secrets
+                  key: GRAFANA_ADMIN_USER
 
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: admin
+              valueFrom:
+                secretKeyRef:
+                  name: queueforge-secrets
+                  key: GRAFANA_ADMIN_PASSWORD
 
           volumeMounts:
             - name: grafana-datasources
