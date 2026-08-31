@@ -204,5 +204,9 @@ def test_metrics_endpoint(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert "text/plain" in response.headers["content-type"]
+
     assert "python_gc_objects_collected_total" in response.text
+    assert "queueforge_jobs_created_total" in response.text
+    assert "queueforge_job_upload_size_bytes" in response.text
+    assert "queueforge_job_dispatch_total" in response.text
     

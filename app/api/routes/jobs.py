@@ -7,6 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.api.schemas.jobs import JobDetailResponse, JobListItem, JobResponse
 from app.database import get_db
+from app.metrics import (
+    job_dispatch_total,
+    job_upload_size_bytes,
+    jobs_created_total,
+)
 from app.models.job import Job
 from app.processing.csv_processor import get_csv_headers
 from app.tasks.jobs import process_csv_job
@@ -35,6 +40,8 @@ async def create_job(
         )
 
     contents = await file.read()
+
+    job_upload_size_bytes.observe(len(contents))
 
     try:
         columns = get_csv_headers(contents)
@@ -65,12 +72,16 @@ async def create_job(
     db.commit()
     db.refresh(job)
 
+    jobs_created_total.inc()
+
     encoded_contents = base64.b64encode(contents).decode("ascii")
 
     process_csv_job.delay(
         job.id,
         encoded_contents,
     )
+
+    job_dispatch_total.inc()
 
     return JobResponse(
         id=job.id,
