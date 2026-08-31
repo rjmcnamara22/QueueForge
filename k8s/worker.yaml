@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: queueforge-worker
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: queueforge-worker
@@ -22,6 +22,7 @@ spec:
             - app.celery_app.celery_app
             - worker
             - --loglevel=info
+            - --concurrency=2
           env:
             - name: DATABASE_URL
               value: postgresql+psycopg://postgres:queueforge@postgres:5432/queueforge
@@ -29,3 +30,10 @@ spec:
               value: postgresql+psycopg://postgres:queueforge@postgres:5432/queueforge_test
             - name: REDIS_URL
               value: redis://redis:6379/0
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "768Mi"
